@@ -28,6 +28,7 @@ COPY --from=builder /root/.local /home/agent/.local
 # Copy application
 COPY app/ ./app/
 COPY utils/ ./utils/
+COPY static/ ./static/
 
 # Set ENV before USER so paths resolve correctly
 ENV PYTHONUSERBASE=/home/agent/.local

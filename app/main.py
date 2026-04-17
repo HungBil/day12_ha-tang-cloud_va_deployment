@@ -24,9 +24,11 @@ from datetime import datetime, timezone
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, Depends, Request, Response
+from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 import uvicorn
+import pathlib
 
 from app.config import settings
 from app.auth import verify_api_key
@@ -146,10 +148,55 @@ def root():
         "version": settings.app_version,
         "environment": settings.environment,
         "endpoints": {
+            "chat": "GET /chat (web UI — no API key needed)",
             "ask": "POST /ask (requires X-API-Key)",
             "health": "GET /health",
             "ready": "GET /ready",
         },
+    }
+
+
+# ─────────────────────────────────────────────────────────
+# Chat UI — Public (no API key needed)
+# ─────────────────────────────────────────────────────────
+_STATIC_DIR = pathlib.Path(__file__).resolve().parent.parent / "static"
+
+
+@app.get("/chat", response_class=HTMLResponse, tags=["Chat"])
+def chat_page():
+    """Serve the chat web UI. No authentication required."""
+    html_file = _STATIC_DIR / "chat.html"
+    if not html_file.exists():
+        raise HTTPException(404, "Chat UI not found")
+    return FileResponse(html_file, media_type="text/html")
+
+
+@app.post("/api/chat", tags=["Chat"])
+async def public_chat(body: AskRequest, request: Request):
+    """
+    Public chat endpoint — rate-limited by IP, no API key required.
+    Server handles OpenAI call internally so the key is never exposed.
+    """
+    client_ip = request.client.host if request.client else "unknown"
+    check_rate_limit(f"chat:{client_ip}")  # separate bucket from API users
+
+    input_tokens = len(body.question.split()) * 2
+    check_and_record_cost(input_tokens, 0)
+
+    logger.info(json.dumps({
+        "event": "chat_ui",
+        "q_len": len(body.question),
+        "client": client_ip,
+    }))
+
+    answer = llm_ask(body.question)
+
+    output_tokens = len(answer.split()) * 2
+    check_and_record_cost(0, output_tokens)
+
+    return {
+        "answer": answer,
+        "model": settings.llm_model,
     }
 
 
