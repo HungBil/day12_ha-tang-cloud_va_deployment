@@ -10,8 +10,8 @@
 
 Production-ready AI Agent deployed on **Render** with:
 - ✅ API Key authentication
-- ✅ Rate limiting (20 req/min, sliding window)
-- ✅ Cost guard ($5/day budget)
+- ✅ Rate limiting (10 req/min, sliding window)
+- ✅ Cost guard ($10/month ≈ $0.33/day budget)
 - ✅ Health check + Readiness probe
 - ✅ Graceful shutdown (SIGTERM)
 - ✅ Multi-stage Docker build (< 500 MB)
@@ -27,7 +27,7 @@ Production-ready AI Agent deployed on **Render** with:
 
 ```bash
 # 1. Clone repo
-git clone https://github.com/<username>/day12_ha-tang-cloud_va_deployment.git
+git clone https://github.com/HungBil/day12_ha-tang-cloud_va_deployment.git
 cd day12_ha-tang-cloud_va_deployment
 
 # 2. Create environment file
@@ -145,8 +145,8 @@ curl -X POST http://localhost:8000/ask \
 ## 🔒 Security Features
 
 1. **API Key Auth** — `X-API-Key` header required for `/ask` and `/metrics`
-2. **Rate Limiting** — 20 requests/minute per key (sliding window)
-3. **Cost Guard** — $5/day budget limit per instance
+2. **Rate Limiting** — 10 requests/minute per key (sliding window)
+3. **Cost Guard** — $10/month ($0.33/day) budget limit per instance
 4. **No Hardcoded Secrets** — All sensitive config from env vars
 5. **Security Headers** — `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`
 6. **Non-root Docker** — Container runs as `agent` user

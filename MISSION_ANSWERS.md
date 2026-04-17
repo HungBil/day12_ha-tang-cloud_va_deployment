@@ -115,7 +115,7 @@ curl -X POST https://<URL>/ask \
 **Algorithm:** Sliding Window Counter
 - Dùng `deque` lưu timestamps của mỗi request
 - Mỗi request mới: xóa entries cũ hơn 60s, đếm còn lại
-- Nếu >= `RATE_LIMIT_PER_MINUTE` (20) → `429 Too Many Requests` + header `Retry-After: 60`
+- Nếu >= `RATE_LIMIT_PER_MINUTE` (10) → `429 Too Many Requests` + header `Retry-After: 60`
 - Key bucket = 8 ký tự đầu của API key (group rate per client)
 
 **Tại sao sliding window?**
@@ -125,7 +125,7 @@ curl -X POST https://<URL>/ask \
 ### Exercise 4.3: Test Results
 
 ```bash
-# Gửi 25 requests liên tục, expect: 20×200, 5×429
+# Gửi 15 requests liên tục, expect: 10×200, 5×429
 for i in $(seq 1 25); do
   echo "Request $i: $(curl -s -o /dev/null -w '%{http_code}' \
     -X POST $URL/ask \
@@ -133,8 +133,8 @@ for i in $(seq 1 25); do
     -H 'Content-Type: application/json' \
     -d "{\"question\": \"test $i\"}")"
 done
-# Request 1-20: 200
-# Request 21-25: 429
+# Request 1-10: 200
+# Request 11-15: 429
 ```
 
 ### Exercise 4.4: Cost Guard
@@ -142,13 +142,13 @@ done
 **Cách hoạt động:**
 - Track `_daily_cost` (accumulated) và `_cost_reset_day`
 - Mỗi request: ước tính tokens → tính cost theo GPT-4o-mini pricing
-- Nếu `_daily_cost >= DAILY_BUDGET_USD` ($5.0) → `402 Payment Required`
+- Nếu `_daily_cost >= DAILY_BUDGET_USD` ($0.33/day ≈ $10/month) → `402 Payment Required`
 - Reset về 0 khi ngày mới (so sánh `strftime("%Y-%m-%d")`)
 
 **Tại sao cần cost guard?**
 - Một user spam 10,000 requests → bill $500 → phá sản
-- Cost guard giới hạn $5/ngày → worst case $150/tháng (chấp nhận được)
-- Kết hợp rate limit (20/min) → double protection
+- Cost guard giới hạn ~$10/tháng → worst case chấp nhận được
+- Kết hợp rate limit (10/min) → double protection
 
 ---
 

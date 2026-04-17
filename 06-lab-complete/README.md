@@ -1,100 +1,159 @@
-# Lab 12 — Complete Production Agent
+# 🤖 Production AI Agent — Day 12 Cloud Deployment Lab
 
-Kết hợp TẤT CẢ những gì đã học trong 1 project hoàn chỉnh.
-
-## Checklist Deliverable
-
-- [x] Dockerfile (multi-stage, < 500 MB)
-- [x] docker-compose.yml (agent + redis)
-- [x] .dockerignore
-- [x] Health check endpoint (`GET /health`)
-- [x] Readiness endpoint (`GET /ready`)
-- [x] API Key authentication
-- [x] Rate limiting
-- [x] Cost guard
-- [x] Config từ environment variables
-- [x] Structured logging
-- [x] Graceful shutdown
-- [x] Public URL ready (Railway / Render config)
+> **Student:** Nguyễn Đông Hưng — 2A202600392  
+> **Course:** AI Agent Development  
+> **Lab:** Day 12 — Hạ Tầng Cloud và Deployment
 
 ---
 
-## Cấu Trúc
+## 📋 Overview
 
-```
-06-lab-complete/
-├── app/
-│   ├── main.py         # Entry point — kết hợp tất cả
-│   ├── config.py       # 12-factor config
-│   ├── auth.py         # API Key + JWT
-│   ├── rate_limiter.py # Rate limiting
-│   └── cost_guard.py   # Budget protection
-├── Dockerfile          # Multi-stage, production-ready
-├── docker-compose.yml  # Full stack
-├── railway.toml        # Deploy Railway
-├── render.yaml         # Deploy Render
-├── .env.example        # Template
-├── .dockerignore
-└── requirements.txt
-```
+Production-ready AI Agent deployed on **Render** with:
+- ✅ API Key authentication
+- ✅ Rate limiting (10 req/min, sliding window)
+- ✅ Cost guard ($10/month ≈ $0.33/day budget)
+- ✅ Health check + Readiness probe
+- ✅ Graceful shutdown (SIGTERM)
+- ✅ Multi-stage Docker build (< 500 MB)
+- ✅ Structured JSON logging
+- ✅ Security headers (X-Content-Type-Options, X-Frame-Options)
+- ✅ CORS middleware
 
 ---
 
-## Chạy Local
+## 🚀 Quick Setup
+
+### Option 1: Docker (Recommended)
 
 ```bash
-# 1. Setup
+# 1. Clone repo
+git clone https://github.com/HungBil/day12_ha-tang-cloud_va_deployment.git
+cd day12_ha-tang-cloud_va_deployment
+
+# 2. Create environment file
 cp .env.example .env
 
-# 2. Chạy với Docker Compose
-docker compose up
+# 3. Build and run
+docker compose up --build
 
-# 3. Test
-curl http://localhost/health
-
-# 4. Lấy API key từ .env, test endpoint
-API_KEY=$(grep AGENT_API_KEY .env | cut -d= -f2)
-curl -H "X-API-Key: $API_KEY" \
-     -X POST http://localhost/ask \
-     -H "Content-Type: application/json" \
-     -d '{"question": "What is deployment?"}'
+# 4. Test
+curl http://localhost:8000/health
 ```
 
----
-
-## Deploy Railway (< 5 phút)
+### Option 2: Local Python
 
 ```bash
-# Cài Railway CLI
-npm i -g @railway/cli
+# 1. Install dependencies
+pip install -r requirements.txt
 
-# Login và deploy
-railway login
-railway init
-railway variables set OPENAI_API_KEY=sk-...
-railway variables set AGENT_API_KEY=your-secret-key
-railway up
+# 2. Create environment file
+cp .env.example .env
 
-# Nhận public URL!
-railway domain
+# 3. Run
+python -m app.main
+
+# 4. Test
+curl http://localhost:8000/health
 ```
 
 ---
 
-## Deploy Render
+## 📡 API Reference
 
-1. Push repo lên GitHub
-2. Render Dashboard → New → Blueprint
-3. Connect repo → Render đọc `render.yaml`
-4. Set secrets: `OPENAI_API_KEY`, `AGENT_API_KEY`
-5. Deploy → Nhận URL!
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| `GET` | `/` | ❌ | App info + available endpoints |
+| `POST` | `/ask` | ✅ `X-API-Key` | Send question to AI agent |
+| `GET` | `/health` | ❌ | Liveness probe |
+| `GET` | `/ready` | ❌ | Readiness probe |
+| `GET` | `/metrics` | ✅ `X-API-Key` | Runtime metrics (protected) |
+| `GET` | `/docs` | ❌ | Swagger UI (dev only) |
 
----
-
-## Kiểm Tra Production Readiness
+### POST `/ask` — Example
 
 ```bash
-python check_production_ready.py
+curl -X POST http://localhost:8000/ask \
+  -H "X-API-Key: dev-key-change-me" \
+  -H "Content-Type: application/json" \
+  -d '{"question": "What is Docker?"}'
 ```
 
-Script này kiểm tra tất cả items trong checklist và báo cáo những gì còn thiếu.
+**Response:**
+```json
+{
+  "question": "What is Docker?",
+  "answer": "Container là cách đóng gói app để chạy ở mọi nơi...",
+  "model": "gpt-4o-mini",
+  "timestamp": "2026-04-17T08:00:00Z"
+}
+```
+
+---
+
+## 🏗️ Architecture
+
+```
+┌─────────────────────────────────────────────────┐
+│                   Client (cURL)                 │
+└───────────────────┬─────────────────────────────┘
+                    │ HTTP Request
+                    ▼
+┌─────────────────────────────────────────────────┐
+│              FastAPI Application                │
+│  ┌──────────┐ ┌───────────┐ ┌──────────────┐   │
+│  │ Auth     │→│ Rate      │→│ Cost Guard   │   │
+│  │ (401)    │ │ Limiter   │ │ (402)        │   │
+│  │          │ │ (429)     │ │              │   │
+│  └──────────┘ └───────────┘ └──────┬───────┘   │
+│                                     │           │
+│                              ┌──────▼───────┐   │
+│                              │  Mock LLM    │   │
+│                              │  (or OpenAI) │   │
+│                              └──────────────┘   │
+│                                                 │
+│  Endpoints: / | /ask | /health | /ready | /metrics│
+└─────────────────────────────────────────────────┘
+```
+
+---
+
+## 📁 Project Structure
+
+```
+├── app/
+│   ├── __init__.py          # Package init
+│   ├── main.py              # FastAPI app, endpoints, middleware
+│   ├── config.py            # 12-factor config (dataclass + os.getenv)
+│   ├── auth.py              # API Key verification
+│   ├── rate_limiter.py      # Sliding window rate limiter
+│   └── cost_guard.py        # Budget protection
+├── utils/
+│   └── mock_llm.py          # Mock LLM responses
+├── screenshots/             # Deployment evidence
+├── Dockerfile               # Multi-stage build
+├── docker-compose.yml       # Agent + Redis stack
+├── render.yaml              # Render Blueprint
+├── requirements.txt         # Pinned dependencies
+├── .env.example             # Environment template
+├── .dockerignore            # Docker build exclusions
+├── MISSION_ANSWERS.md       # Lab exercise answers
+└── DEPLOYMENT.md            # Public URL + test commands
+```
+
+---
+
+## 🔒 Security Features
+
+1. **API Key Auth** — `X-API-Key` header required for `/ask` and `/metrics`
+2. **Rate Limiting** — 10 requests/minute per key (sliding window)
+3. **Cost Guard** — $10/month ($0.33/day) budget limit per instance
+4. **No Hardcoded Secrets** — All sensitive config from env vars
+5. **Security Headers** — `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`
+6. **Non-root Docker** — Container runs as `agent` user
+7. **CORS** — Configurable allowed origins
+
+---
+
+## 📄 License
+
+This project is created for educational purposes as part of the AI Agent Development course.

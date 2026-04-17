@@ -53,7 +53,7 @@ curl -X POST https://day12-agent-hung.onrender.com/ask \
 # Expected: 200 + JSON response with answer
 ```
 
-### 5. Rate Limiting Test (expect 429 after 20 requests)
+### 5. Rate Limiting Test (expect 429 after 10 requests)
 ```bash
 for i in $(seq 1 25); do
   echo "Request $i: $(curl -s -o /dev/null -w '%{http_code}' \
@@ -62,7 +62,7 @@ for i in $(seq 1 25); do
     -H 'Content-Type: application/json' \
     -d "{\"question\": \"test $i\"}")"
 done
-# Expected: 200 for first 20, 429 for remaining
+# Expected: 200 for first 10, 429 for remaining
 ```
 
 ### 6. Root Info
