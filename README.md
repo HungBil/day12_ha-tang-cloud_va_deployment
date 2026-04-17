@@ -1,109 +1,159 @@
-# Day 12 — Deployment: Đưa Agent Lên Cloud
+# 🤖 Production AI Agent — Day 12 Cloud Deployment Lab
 
-> **AICB-P1 · VinUniversity 2026**  
-> Repository thực hành đi kèm bài giảng Day 12.  
-> Mỗi phần có ví dụ **cơ bản** (hiểu concept) và **chuyên sâu** (production-ready).
-
----
-
-## Cấu Trúc Project
-
-```
-day12_ha-tang-cloud_va_deployment/
-├── 01-localhost-vs-production/     # Section 1: Dev ≠ Production
-│   ├── develop/                      #   Agent "đúng kiểu localhost"
-│   └── production/                   #   12-Factor compliant agent
-│
-├── 02-docker/                      # Section 2: Containerization
-│   ├── develop/                      #   Dockerfile đơn giản
-│   └── production/                   #   Multi-stage + Docker Compose stack
-│
-├── 03-cloud-deployment/            # Section 3: Cloud Options
-│   ├── railway/                    #   Deploy Railway (< 5 phút)
-│   ├── render/                     #   Deploy Render + render.yaml
-│   └── production-cloud-run/         #   GCP Cloud Run + CI/CD
-│
-├── 04-api-gateway/                 # Section 4: Security
-│   ├── develop/                      #   API Key authentication
-│   └── production/                   #   JWT + Rate Limiting + Cost Guard
-│
-├── 05-scaling-reliability/         # Section 5: Scale & Reliability
-│   ├── develop/                      #   Health check + graceful shutdown
-│   └── production/                   #   Stateless + Redis + Nginx LB
-│
-├── 06-lab-complete/                # Lab 12: Production-ready agent
-│   └── (full project kết hợp tất cả)
-│
-└── utils/                          # Mock LLM dùng chung (không cần API key)
-```
+> **Student:** Nguyễn Đông Hưng — 2A202600392  
+> **Course:** AI Agent Development  
+> **Lab:** Day 12 — Hạ Tầng Cloud và Deployment
 
 ---
 
-## 🚀 Bắt Đầu Nhanh
+## 📋 Overview
 
-**Muốn thử ngay?** → [QUICK_START.md](QUICK_START.md) (5 phút)
-
-**Muốn học kỹ?** → [CODE_LAB.md](CODE_LAB.md) (3-4 giờ)
-
-## Cách Học
-
-| Bước | Làm gì |
-|------|--------|
-| 0 | **[Khuyến nghị]** Đọc [QUICK_START.md](QUICK_START.md) để thử nhanh |
-| 1 | Đọc [CODE_LAB.md](CODE_LAB.md) để hiểu chi tiết |
-| 2 | Chạy ví dụ **basic** trước — hiểu concept |
-| 3 | So sánh với ví dụ **advanced** — thấy sự khác biệt |
-| 4 | Tự làm Lab 06 từ đầu trước khi xem solution |
-| 5 | Tham khảo [QUICK_REFERENCE.md](QUICK_REFERENCE.md) khi cần |
-| 6 | Xem [TROUBLESHOOTING.md](TROUBLESHOOTING.md) khi gặp lỗi |
+Production-ready AI Agent deployed on **Render** with:
+- ✅ API Key authentication
+- ✅ Rate limiting (20 req/min, sliding window)
+- ✅ Cost guard ($5/day budget)
+- ✅ Health check + Readiness probe
+- ✅ Graceful shutdown (SIGTERM)
+- ✅ Multi-stage Docker build (< 500 MB)
+- ✅ Structured JSON logging
+- ✅ Security headers (X-Content-Type-Options, X-Frame-Options)
+- ✅ CORS middleware
 
 ---
 
-## Yêu Cầu
+## 🚀 Quick Setup
+
+### Option 1: Docker (Recommended)
 
 ```bash
-python 3.11+
-docker & docker compose
+# 1. Clone repo
+git clone https://github.com/<username>/day12_ha-tang-cloud_va_deployment.git
+cd day12_ha-tang-cloud_va_deployment
+
+# 2. Create environment file
+cp .env.example .env
+
+# 3. Build and run
+docker compose up --build
+
+# 4. Test
+curl http://localhost:8000/health
 ```
 
-Mỗi folder có `requirements.txt` riêng. Không cần API key thật — các ví dụ dùng **mock LLM** để chạy offline.
+### Option 2: Local Python
+
+```bash
+# 1. Install dependencies
+pip install -r requirements.txt
+
+# 2. Create environment file
+cp .env.example .env
+
+# 3. Run
+python -m app.main
+
+# 4. Test
+curl http://localhost:8000/health
+```
 
 ---
 
-## Sections
+## 📡 API Reference
 
-| # | Folder | Concept chính |
-|---|--------|--------------|
-| 1 | `01-localhost-vs-production` | Dev/prod gap, 12-factor, secrets |
-| 2 | `02-docker` | Dockerfile, multi-stage, docker-compose |
-| 3 | `03-cloud-deployment` | Railway, Render, Cloud Run |
-| 4 | `04-api-gateway` | Auth, rate limiting, cost protection |
-| 5 | `05-scaling-reliability` | Health check, stateless, rolling deploy |
-| 6 | `06-lab-complete` | **Full production agent** |
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| `GET` | `/` | ❌ | App info + available endpoints |
+| `POST` | `/ask` | ✅ `X-API-Key` | Send question to AI agent |
+| `GET` | `/health` | ❌ | Liveness probe |
+| `GET` | `/ready` | ❌ | Readiness probe |
+| `GET` | `/metrics` | ✅ `X-API-Key` | Runtime metrics (protected) |
+| `GET` | `/docs` | ❌ | Swagger UI (dev only) |
+
+### POST `/ask` — Example
+
+```bash
+curl -X POST http://localhost:8000/ask \
+  -H "X-API-Key: dev-key-change-me" \
+  -H "Content-Type: application/json" \
+  -d '{"question": "What is Docker?"}'
+```
+
+**Response:**
+```json
+{
+  "question": "What is Docker?",
+  "answer": "Container là cách đóng gói app để chạy ở mọi nơi...",
+  "model": "gpt-4o-mini",
+  "timestamp": "2026-04-17T08:00:00Z"
+}
+```
 
 ---
 
-## 📚 Lab Materials
+## 🏗️ Architecture
 
-Chúng tôi đã chuẩn bị đầy đủ tài liệu hướng dẫn:
+```
+┌─────────────────────────────────────────────────┐
+│                   Client (cURL)                 │
+└───────────────────┬─────────────────────────────┘
+                    │ HTTP Request
+                    ▼
+┌─────────────────────────────────────────────────┐
+│              FastAPI Application                │
+│  ┌──────────┐ ┌───────────┐ ┌──────────────┐   │
+│  │ Auth     │→│ Rate      │→│ Cost Guard   │   │
+│  │ (401)    │ │ Limiter   │ │ (402)        │   │
+│  │          │ │ (429)     │ │              │   │
+│  └──────────┘ └───────────┘ └──────┬───────┘   │
+│                                     │           │
+│                              ┌──────▼───────┐   │
+│                              │  Mock LLM    │   │
+│                              │  (or OpenAI) │   │
+│                              └──────────────┘   │
+│                                                 │
+│  Endpoints: / | /ask | /health | /ready | /metrics│
+└─────────────────────────────────────────────────┘
+```
 
-### Cho Sinh Viên
+---
 
-| Tài liệu | Mô tả | Thời gian |
-|----------|-------|-----------|
-| **[CODE_LAB.md](CODE_LAB.md)** | Hướng dẫn lab chi tiết từng bước | 3-4 giờ |
-| **[QUICK_REFERENCE.md](QUICK_REFERENCE.md)** | Cheat sheet các lệnh và patterns | Tra cứu |
-| **[TROUBLESHOOTING.md](TROUBLESHOOTING.md)** | Giải quyết lỗi thường gặp | Khi cần |
+## 📁 Project Structure
 
-### Cho Giảng Viên
+```
+├── app/
+│   ├── __init__.py          # Package init
+│   ├── main.py              # FastAPI app, endpoints, middleware
+│   ├── config.py            # 12-factor config (dataclass + os.getenv)
+│   ├── auth.py              # API Key verification
+│   ├── rate_limiter.py      # Sliding window rate limiter
+│   └── cost_guard.py        # Budget protection
+├── utils/
+│   └── mock_llm.py          # Mock LLM responses
+├── screenshots/             # Deployment evidence
+├── Dockerfile               # Multi-stage build
+├── docker-compose.yml       # Agent + Redis stack
+├── render.yaml              # Render Blueprint
+├── requirements.txt         # Pinned dependencies
+├── .env.example             # Environment template
+├── .dockerignore            # Docker build exclusions
+├── MISSION_ANSWERS.md       # Lab exercise answers
+└── DEPLOYMENT.md            # Public URL + test commands
+```
 
-| Tài liệu | Mô tả |
-|----------|-------|
-| **[INSTRUCTOR_GUIDE.md](INSTRUCTOR_GUIDE.md)** | Hướng dẫn chấm điểm và đánh giá |
+---
 
-### Cách Sử Dụng
+## 🔒 Security Features
 
-1. **Trước lab:** Đọc [CODE_LAB.md](CODE_LAB.md) để hiểu tổng quan
-2. **Trong lab:** Làm theo từng Part, tham khảo [QUICK_REFERENCE.md](QUICK_REFERENCE.md)
-3. **Gặp lỗi:** Xem [TROUBLESHOOTING.md](TROUBLESHOOTING.md)
-4. **Sau lab:** Nộp Part 6 Final Project để chấm điểm
+1. **API Key Auth** — `X-API-Key` header required for `/ask` and `/metrics`
+2. **Rate Limiting** — 20 requests/minute per key (sliding window)
+3. **Cost Guard** — $5/day budget limit per instance
+4. **No Hardcoded Secrets** — All sensitive config from env vars
+5. **Security Headers** — `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`
+6. **Non-root Docker** — Container runs as `agent` user
+7. **CORS** — Configurable allowed origins
+
+---
+
+## 📄 License
+
+This project is created for educational purposes as part of the AI Agent Development course.
