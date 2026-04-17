@@ -69,7 +69,7 @@
 ### Exercise 3.1: Render Deployment
 
 - **Platform:** Render (Docker runtime)
-- **Public URL:** _(sẽ điền sau khi deploy)_
+- **Public URL:** https://day12-agent-hung.onrender.com
 - **Region:** Singapore (gần Việt Nam nhất)
 - **Plan:** Free tier (spin-down sau 15 phút idle, cold start ~30-60s)
 
