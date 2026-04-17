@@ -19,6 +19,6 @@ services:
       - key: JWT_SECRET
         generateValue: true
       - key: DAILY_BUDGET_USD
-        value: "5.0"
+        value: "0.33"
       - key: RATE_LIMIT_PER_MINUTE
-        value: "20"
+        value: "10"
